@@ -12,11 +12,79 @@ from torch_geometric.data import InMemoryDataset
 
 from torch_sparse import coalesce
 from sklearn.feature_extraction.text import CountVectorizer
+from scipy import sparse as sp
+
+from hybrid_graph_benchmark.hg.hybrid_graph.io import get_dataset_single
+
+def load_HGB_dataset(path, dataset):
+    ori_dataset = get_dataset_single(dataset)
+    print(ori_dataset)
+    data = Data(
+            x = ori_dataset.x,
+            y = ori_dataset.y,
+            num_hyperedges = ori_dataset.num_hyperedges)
+
+    data.num_features = data.x.shape[-1]
+    data.num_classes = len(np.unique(ori_dataset.y.numpy()))
+    data.num_nodes = data.x.shape[0]
+    print("runingfunction    loadHGBdataset")
+    # increase the hyperedge_index by the number of nodes.
+    edge_index = ori_dataset.hyperedge_index
+    print(edge_index)
+    #TODO:for    node    not    in    hyperedge,    add    a    self-loop    to    it.
+    all_nodes = set(range(data.num_nodes))
+    hyperedge_nodes = set(edge_index[0].numpy())
+    missing_nodes = all_nodes - hyperedge_nodes
+    max_hyperedge_id = edge_index[1].max()
+    edge_index = edge_index.numpy()
+    self_loops = np.array([[node, max_hyperedge_id + i + 1] for i, node in enumerate(missing_nodes)])
+    edge_index = np.hstack((edge_index, self_loops.T))
+    edge_index[1,:] += data.num_nodes
+    print(edge_index)
+
+    # map the node_id and hyperedge_id to a consecutive number.
+    ###################################
+    # node_id = np.unique(edge_index[0])
+    # hyperedge_id = np.unique(edge_index[1])
+    # idx = np.array(list(node_id)+list(hyperedge_id))
+    # idx_map = {j:i for i,j in enumerate(idx)} # this maps the actual node id to squeezed node id
+    
+    # print(f"before    removale    edge    index    shape:{edge_index.shape}")
+    # # use idx map to reorder the hyperedge index, such that there is not non-consecutive elements
+    # edges = np.array(list(map(idx_map.get, edge_index.flatten())),
+    #                  dtype=np.int32).reshape(edge_index.shape)
+    # edge_index=edges
+    ###################################
+    
+    print(f"after    removale    edge    index    shape:{edge_index.shape}")
+    assert edge_index[0].max() == edge_index[1].min() - 1
+
+    # check if values in edge_index is consecutive. i.e. no missing value for node_id/he_id.
+    assert len(np.unique(edge_index)) == edge_index.max() + 1
+    num_nodes = edge_index[0].max() + 1
+    num_he = edge_index[1].max() - num_nodes + 1
+    edge_index = np.hstack((edge_index, edge_index[::-1, :]))
+    edge_index=torch.LongTensor(edge_index)
+    total_num_node_id_he_id = len(np.unique(edge_index))
+    data.edge_index, data.edge_attr = coalesce(edge_index, 
+            None, 
+            total_num_node_id_he_id, 
+            total_num_node_id_he_id)
+    data.num_hyperedges = num_he
+    # print(f"data.num_nodes: {data.num_nodes}")
+    # print(f"data.num_hyperedges: {data.num_hyperedges}")
+    # print(f"num_nodes: {num_nodes}")
+    # print(f"num_he: {num_he}")
+    # print(f"data    edge    index    shape:{data.edge_index.shape}")
+    # print(f"edge    index    shape:{edge_index.shape}")
+    # print("finish    function    loadHGBdataset")
+    return data
+
 
 def load_LE_dataset(path, dataset):
     # load edges, features, and labels.
     print('Loading {} dataset...'.format(dataset))
-    
+
     file_name = f'{dataset}.content'
     p2idx_features_labels = os.path.join(path, file_name)
     idx_features_labels = np.genfromtxt(p2idx_features_labels,
@@ -32,13 +100,13 @@ def load_LE_dataset(path, dataset):
     # build graph
     idx = np.array(idx_features_labels[:, 0], dtype=np.int32)
     idx_map = {j: i for i, j in enumerate(idx)}
-    
+
     file_name = f'{dataset}.edges'
     p2edges_unordered = os.path.join(path, file_name)
     edges_unordered = np.genfromtxt(p2edges_unordered,
                                     dtype=np.int32)
-    
-    
+
+
     edges = np.array(list(map(idx_map.get, edges_unordered.flatten())),
                      dtype=np.int32).reshape(edges_unordered.shape)
 
@@ -47,46 +115,46 @@ def load_LE_dataset(path, dataset):
 
     projected_features = torch.FloatTensor(np.array(features.todense()))
 
-    
+
     # From adjacency matrix to edge_list
-    edge_index = edges.T 
+    edge_index = edges.T
     assert edge_index[0].max() == edge_index[1].min() - 1
 
     # check if values in edge_index is consecutive. i.e. no missing value for node_id/he_id.
     assert len(np.unique(edge_index)) == edge_index.max() + 1
-    
+
     num_nodes = edge_index[0].max() + 1
     num_he = edge_index[1].max() - num_nodes + 1
-    
+
     edge_index = np.hstack((edge_index, edge_index[::-1, :]))
-    
+
     # build torch data class
     data = Data(
-            x = torch.FloatTensor(np.array(features[:num_nodes].todense())), 
+            x = torch.FloatTensor(np.array(features[:num_nodes].todense())),
             edge_index = torch.LongTensor(edge_index),
             y = labels[:num_nodes])
 
     # data.coalesce()
     # There might be errors if edge_index.max() != num_nodes.
     # used user function to override the default function.
-    # the following will also sort the edge_index and remove duplicates. 
+    # the following will also sort the edge_index and remove duplicates.
     total_num_node_id_he_id = len(np.unique(edge_index))
-    data.edge_index, data.edge_attr = coalesce(data.edge_index, 
-            None, 
-            total_num_node_id_he_id, 
+    data.edge_index, data.edge_attr = coalesce(data.edge_index,
+            None,
+            total_num_node_id_he_id,
             total_num_node_id_he_id)
-            
-    
+
+
     data.num_features = data.x.shape[-1]
     data.num_classes = len(np.unique(labels[:num_nodes].numpy()))
     data.num_nodes = num_nodes
     data.num_hyperedges = num_he
-    
+
     return data
 
 def load_citation_dataset(path, dataset):
     '''
-    this will read the citation dataset from HyperGCN, and convert it edge_list to 
+    this will read the citation dataset from HyperGCN, and convert it edge_list to
     [[ -V- | -E- ]
      [ -E- | -V- ]]
     '''
@@ -129,7 +197,7 @@ def load_citation_dataset(path, dataset):
         edge_idx += 1
 
     edge_index = np.array([ node_list + edge_list,
-                            edge_list + node_list], dtype = np.int)
+                            edge_list + node_list], dtype = np.int64)
     edge_index = torch.LongTensor(edge_index)
 
     data = Data(x = features,
@@ -139,11 +207,11 @@ def load_citation_dataset(path, dataset):
     # data.coalesce()
     # There might be errors if edge_index.max() != num_nodes.
     # used user function to override the default function.
-    # the following will also sort the edge_index and remove duplicates. 
+    # the following will also sort the edge_index and remove duplicates.
     total_num_node_id_he_id = edge_index.max() + 1
-    data.edge_index, data.edge_attr = coalesce(data.edge_index, 
-            None, 
-            total_num_node_id_he_id, 
+    data.edge_index, data.edge_attr = coalesce(data.edge_index,
+            None,
+            total_num_node_id_he_id,
             total_num_node_id_he_id)
 
     data.num_features = features.shape[-1]
@@ -155,7 +223,7 @@ def load_citation_dataset(path, dataset):
 
 def load_yelp_dataset(path, dataset, name_dictionary_size = 1000):
     '''
-    this will read the yelp dataset from source files, and convert it edge_list to 
+    this will read the yelp dataset from source files, and convert it edge_list to
     [[ -V- | -E- ]
      [ -E- | -V- ]]
 
@@ -163,8 +231,8 @@ def load_yelp_dataset(path, dataset, name_dictionary_size = 1000):
 
     node features:
         - latitude, longitude
-        - state, in one-hot coding. 
-        - city, in one-hot coding. 
+        - state, in one-hot coding.
+        - city, in one-hot coding.
         - name, in bag-of-words
 
     node label:
@@ -226,11 +294,11 @@ def load_yelp_dataset(path, dataset, name_dictionary_size = 1000):
     # data.coalesce()
     # There might be errors if edge_index.max() != num_nodes.
     # used user function to override the default function.
-    # the following will also sort the edge_index and remove duplicates. 
+    # the following will also sort the edge_index and remove duplicates.
     total_num_node_id_he_id = edge_index.max() + 1
-    data.edge_index, data.edge_attr = coalesce(data.edge_index, 
-            None, 
-            total_num_node_id_he_id, 
+    data.edge_index, data.edge_attr = coalesce(data.edge_index,
+            None,
+            total_num_node_id_he_id,
             total_num_node_id_he_id)
 
     data.num_features = features.shape[-1]
@@ -242,7 +310,7 @@ def load_yelp_dataset(path, dataset, name_dictionary_size = 1000):
 
 def load_cornell_dataset(path, dataset, feature_noise = 0.1, feature_dim = None):
     '''
-    this will read the yelp dataset from source files, and convert it edge_list to 
+    this will read the yelp dataset from source files, and convert it edge_list to
     [[ -V- | -E- ]
      [ -E- | -V- ]]
 
@@ -299,7 +367,7 @@ def load_cornell_dataset(path, dataset, feature_noise = 0.1, feature_dim = None)
     node_idx_min = np.min(node_list)
     node_list = [x - node_idx_min for x in node_list]
 
-    edge_index = [node_list + he_list, 
+    edge_index = [node_list + he_list,
                   he_list + node_list]
 
     edge_index = torch.LongTensor(edge_index)
@@ -312,16 +380,16 @@ def load_cornell_dataset(path, dataset, feature_noise = 0.1, feature_dim = None)
     # data.coalesce()
     # There might be errors if edge_index.max() != num_nodes.
     # used user function to override the default function.
-    # the following will also sort the edge_index and remove duplicates. 
+    # the following will also sort the edge_index and remove duplicates.
     total_num_node_id_he_id = edge_index.max() + 1
-    data.edge_index, data.edge_attr = coalesce(data.edge_index, 
-            None, 
-            total_num_node_id_he_id, 
+    data.edge_index, data.edge_attr = coalesce(data.edge_index,
+            None,
+            total_num_node_id_he_id,
             total_num_node_id_he_id)
 
     data.num_features = features.shape[-1]
     data.num_classes = len(np.unique(labels.numpy()))
     data.num_nodes = num_nodes
     data.num_hyperedges = he_id - num_nodes
-    
+
     return data

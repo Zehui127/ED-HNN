@@ -44,17 +44,18 @@ def evaluate(model, data, split_idx, evaluator, loss_fn=None, return_out=False):
     return ret_list
 
 def main(args):
-
-    device = torch.device('cuda:'+str(args.cuda) if torch.cuda.is_available() else 'cpu')
-
+    if args.cuda != -1:
+        device = torch.device('cuda:'+str(args.cuda) if torch.cuda.is_available() else 'cpu')
+    else:
+        device = torch.device('cpu')
     if args.method not in ['HyperGCN', 'HyperSAGE']:
         transform = torch_geometric.transforms.Compose([datasets.AddHypergraphSelfLoops()])
     else:
         transform = None
-
+    print(f"dataset name: {args.dname} ")
     data = datasets.HypergraphDataset(root=args.data_dir, name=args.dname, path_to_download=args.raw_data_dir,
         feature_noise=args.feature_noise, transform=transform).data
-
+    print(data)
     if args.method in ['AllSetTransformer', 'AllDeepSets']:
         data = SetGNN.norm_contruction(data, option=args.normtype)
     elif args.method == 'HNHN':
@@ -106,7 +107,7 @@ def main(args):
     print("# Params:", sum(p.numel() for p in model.parameters() if p.requires_grad))
 
     logger = utils.Logger(args.runs, args)
-    
+
     loss_fn = nn.NLLLoss()
     evaluator = utils.NodeClsEvaluator()
 
@@ -188,7 +189,7 @@ if __name__ == '__main__':
     parser.add_argument('--aggregate', default='mean', choices=['sum', 'mean'])
     parser.add_argument('--normalization', default='ln', choices=['bn','ln','None'])
     parser.add_argument('--activation', default='relu', choices=['Id','relu', 'prelu'])
-    
+
     # Args for EDGNN
     parser.add_argument('--MLP2_num_layers', default=-1, type=int, help='layer number of mlp2')
     parser.add_argument('--MLP3_num_layers', default=-1, type=int, help='layer number of mlp3')
@@ -232,7 +233,7 @@ if __name__ == '__main__':
     parser.set_defaults(HyperGCN_mediators=True)
     parser.set_defaults(HyperGCN_fast=True)
     parser.set_defaults(HCHA_symdegnorm=False)
-    
+
     #     Use the line below for .py file
     args = parser.parse_args()
     #     Use the line below for notebook

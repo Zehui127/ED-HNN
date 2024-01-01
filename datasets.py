@@ -20,14 +20,14 @@ from torch_sparse import coalesce
 from sklearn.feature_extraction.text import CountVectorizer
 
 from data_utils import load_citation_dataset, load_LE_dataset, \
-     load_yelp_dataset, load_cornell_dataset
+     load_yelp_dataset, load_cornell_dataset, load_HGB_dataset
 
 class AddHypergraphSelfLoops(torch_geometric.transforms.BaseTransform):
     def __init__(self, ignore_repeat=True):
         super().__init__()
         # whether to detect existing self loops
         self.ignore_repeat = ignore_repeat
-    
+
     def __call__(self, data):
         edge_index = data.edge_index
         num_nodes = data.num_nodes
@@ -64,8 +64,13 @@ class HypergraphDataset(InMemoryDataset):
     yelp_list = ['yelp']
     cornell_list = ['amazon-reviews', 'walmart-trips', 'house-committees', 'congress-bills', 'senate-committees'] + \
         ['synthetic-0.1', 'synthetic-0.15', 'synthetic-0.2', 'synthetic-0.3', 'synthetic-0.35', 'synthetic-0.4', 'synthetic-0.5']
-
-    existing_dataset = cocitation_list + coauthor_list + LE_list + yelp_list + cornell_list
+    HGB_list = ["musae_Twitch_ES","musae_Twitch_FR","musae_Twitch_EN",
+            "musae_Twitch_PT","musae_Twitch_RU","musae_Twitch_DE",
+            "grand_ArteryAorta","grand_ArteryCoronary","grand_Breast","grand_Brain",
+            "grand_Leukemia","grand_Lung","grand_Stomach","grand_Lungcancer","grand_Stomachcancer",
+            "grand_KidneyCancer","amazon_Photo","amazon_Computer",
+            "musae_Facebook","musae_Github"]
+    existing_dataset = cocitation_list + coauthor_list + LE_list + yelp_list + cornell_list + HGB_list
 
     @staticmethod
     def parse_dataset_name(name):
@@ -107,8 +112,23 @@ class HypergraphDataset(InMemoryDataset):
         _, sorted_idx = torch.sort(edge_index[0])
         edge_index = edge_index[:, sorted_idx].long()
 
+
         num_nodes, num_hyperedges = self.data.num_nodes, self.data.num_hyperedges
+        # print(self.data)
+        # print(self.data.edge_index)
+        # print(self.data.edge_index[:10,:])
+        # print(self.data.edge_index[0,0])
+        # print(torch.max(self.data.edge_index[0,:]))
+        # print(f"num_nodes: {num_nodes}, num_hyperedges: {num_hyperedges}")
+        # print(f"num_nodes + num_hyperedges - 1: {num_nodes + num_hyperedges - 1}")
+        # print(f"self.data.edge_index.max().item(): {self.data.edge_index.max().item()}")
+        # print(torch.min(self.data.edge_index[0,:]))
         assert ((num_nodes + num_hyperedges - 1) == self.data.edge_index.max().item())
+        #save the self.data.edge_index to a txt file with edge_index[0], and edge_index[1] to two columns
+        # Assuming self.data.edge_index is a PyTorch tensor
+        torch.save(self.data.edge_index,"edge_index.pt")
+        print("edge_index saved")
+        # Save to text file
 
         # search for the first E->V edge, as we assume the source node is sorted like [V | E]
         cidx = torch.where(edge_index[0] == num_nodes)[0].min()
@@ -195,6 +215,9 @@ class HypergraphDataset(InMemoryDataset):
             elif dataset_name in self.LE_list:
                 raw_data = load_LE_dataset(path = self.path_to_download,  dataset = dataset_name)
 
+            elif dataset_name in self.HGB_list:
+                raw_data = load_HGB_dataset(path = self.path_to_download, dataset = dataset_name)
+
             self.save_data_to_pickle(raw_data, save_dir = self.raw_dir, file_name = file_name)
 
     def process(self):
@@ -244,3 +267,5 @@ class HypergraphDataset_Diffusion(HypergraphDataset):
 
     def __repr__(self):
         return '{}(feature_noise={})'.format(self.name, self.feature_noise)
+
+# %%
