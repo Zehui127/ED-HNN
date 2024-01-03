@@ -1,0 +1,3 @@
+[submodule "hgb"]
+	path = hgb
+	url = https://github.com/Zehui127/hybrid-graph-benchmark.git

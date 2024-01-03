@@ -396,18 +396,18 @@ class SetGNN(nn.Module):
 
     def forward(self, data):
         """
-        The data should contain the follows
-        data.x: node features
-        data.edge_index: edge list (of size (2,|E|)) where data.edge_index[0] contains nodes and data.edge_index[1] contains hyperedges
+        The datasets should contain the follows
+        datasets.x: node features
+        datasets.edge_index: edge list (of size (2,|E|)) where datasets.edge_index[0] contains nodes and datasets.edge_index[1] contains hyperedges
         !!! Note that self loop should be assigned to a new (hyper)edge id!!!
         !!! Also note that the (hyper)edge id should start at 0 (akin to node id)
-        data.norm: The weight for edges in bipartite graphs, correspond to data.edge_index
+        datasets.norm: The weight for edges in bipartite graphs, correspond to datasets.edge_index
         !!! Note that we output final node representation. Loss should be defined outside.
         """
-        # The data should contain the follows
-        # data.x: node features
-        # data.V2Eedge_index:  edge list (of size (2,|E|)) where
-        # data.V2Eedge_index[0] contains nodes and data.V2Eedge_index[1] contains hyperedges
+        # The datasets should contain the follows
+        # datasets.x: node features
+        # datasets.V2Eedge_index:  edge list (of size (2,|E|)) where
+        # datasets.V2Eedge_index[0] contains nodes and datasets.V2Eedge_index[1] contains hyperedges
 
         x, edge_index, norm = data.x, data.edge_index, data.norm
         if self.LearnMask:

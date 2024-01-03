@@ -1,18 +1,15 @@
-import os, sys
+import os
 
 import numpy as np
 import torch
-import torch.nn.functional as F
 import torch_geometric
 import torch_scatter
 import torch_sparse
 
-import pandas as pd
-from tqdm import tqdm
 import configargparse
 import matplotlib.pyplot as plt
 
-import datasets
+from datasets import datasets
 
 if __name__ == "__main__":
     parser = configargparse.ArgumentParser()
@@ -34,8 +31,8 @@ if __name__ == "__main__":
     device = torch.device('cuda:'+str(args.cuda) if torch.cuda.is_available() else 'cpu')
 
     transform = torch_geometric.transforms.Compose([datasets.AddHypergraphSelfLoops()])
-    data = datasets.HypergraphDataset(root=args.data_dir, name=args.dname, 
-        path_to_download=args.raw_data_dir, feature_noise=args.feature_noise, transform=transform).data
+    data = datasets.HypergraphDataset(root=args.data_dir, name=args.dname,
+                                      path_to_download=args.raw_data_dir, feature_noise=args.feature_noise, transform=transform).data
     V, E = data.edge_index
     V, E = V.to(device), E.to(device)
     

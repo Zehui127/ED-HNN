@@ -162,7 +162,7 @@ def Laplacian(V, E, X, m):
 
     A: adjacency matrix of the graph approximation
     returns: 
-    updated data with 'graph' as a key and its value the approximated hypergraph 
+    updated datasets with 'graph' as a key and its value the approximated hypergraph
     """
     
     edges, weights = [], {}

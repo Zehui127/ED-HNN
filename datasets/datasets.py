@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[45]:
-
-
 import torch
 import pickle
 import os
@@ -20,7 +17,8 @@ from torch_sparse import coalesce
 from sklearn.feature_extraction.text import CountVectorizer
 
 from data_utils import load_citation_dataset, load_LE_dataset, \
-     load_yelp_dataset, load_cornell_dataset, load_HGB_dataset
+    load_yelp_dataset, load_cornell_dataset, load_HGB_dataset
+
 
 class AddHypergraphSelfLoops(torch_geometric.transforms.BaseTransform):
     def __init__(self, ignore_repeat=True):
@@ -56,20 +54,21 @@ class AddHypergraphSelfLoops(torch_geometric.transforms.BaseTransform):
 
         return data
 
-class HypergraphDataset(InMemoryDataset):
 
+class HypergraphDataset(InMemoryDataset):
     cocitation_list = ['cora', 'citeseer', 'pubmed']
     coauthor_list = ['coauthor_cora', 'coauthor_dblp']
     LE_list = ['20newsW100', 'ModelNet40', 'zoo', 'NTU2012', 'Mushroom']
     yelp_list = ['yelp']
     cornell_list = ['amazon-reviews', 'walmart-trips', 'house-committees', 'congress-bills', 'senate-committees'] + \
-        ['synthetic-0.1', 'synthetic-0.15', 'synthetic-0.2', 'synthetic-0.3', 'synthetic-0.35', 'synthetic-0.4', 'synthetic-0.5']
-    HGB_list = ["musae_Twitch_ES","musae_Twitch_FR","musae_Twitch_EN",
-            "musae_Twitch_PT","musae_Twitch_RU","musae_Twitch_DE",
-            "grand_ArteryAorta","grand_ArteryCoronary","grand_Breast","grand_Brain",
-            "grand_Leukemia","grand_Lung","grand_Stomach","grand_Lungcancer","grand_Stomachcancer",
-            "grand_KidneyCancer","amazon_Photo","amazon_Computer",
-            "musae_Facebook","musae_Github"]
+                   ['synthetic-0.1', 'synthetic-0.15', 'synthetic-0.2', 'synthetic-0.3', 'synthetic-0.35',
+                    'synthetic-0.4', 'synthetic-0.5']
+    HGB_list = ["musae_Twitch_ES", "musae_Twitch_FR", "musae_Twitch_EN",
+                "musae_Twitch_PT", "musae_Twitch_RU", "musae_Twitch_DE",
+                "grand_ArteryAorta", "grand_ArteryCoronary", "grand_Breast", "grand_Brain",
+                "grand_Leukemia", "grand_Lung", "grand_Stomach", "grand_Lungcancer", "grand_Stomachcancer",
+                "grand_KidneyCancer", "amazon_Photo", "amazon_Computer",
+                "musae_Facebook", "musae_Github"]
     existing_dataset = cocitation_list + coauthor_list + LE_list + yelp_list + cornell_list + HGB_list
 
     @staticmethod
@@ -87,8 +86,8 @@ class HypergraphDataset(InMemoryDataset):
         name, _ = HypergraphDataset.parse_dataset_name(name)
         return (name in HypergraphDataset.existing_dataset)
 
-    def __init__(self, root, name,  path_to_download='./raw_data',
-        feature_noise = None, transform = None, pre_transform = None):
+    def __init__(self, root, name, path_to_download='./raw_data',
+                 feature_noise=None, transform=None, pre_transform=None):
 
         assert self.dataset_exists(name), f'Dataset {name} is not defined'
         self.name = name
@@ -99,10 +98,10 @@ class HypergraphDataset(InMemoryDataset):
         if not os.path.isdir(root):
             os.makedirs(root)
 
-        # 1. this line will sequentially call download, preprocess, and save data
+        # 1. this line will sequentially call download, preprocess, and save datasets
         super(HypergraphDataset, self).__init__(root, transform, pre_transform)
 
-        # 2. load preprocessed data
+        # 2. load preprocessed datasets
         self.data, self.slices = torch.load(self.processed_paths[0])
 
         # 3. extract to V->E edges
@@ -112,21 +111,20 @@ class HypergraphDataset(InMemoryDataset):
         _, sorted_idx = torch.sort(edge_index[0])
         edge_index = edge_index[:, sorted_idx].long()
 
-
         num_nodes, num_hyperedges = self.data.num_nodes, self.data.num_hyperedges
-        # print(self.data)
-        # print(self.data.edge_index)
-        # print(self.data.edge_index[:10,:])
-        # print(self.data.edge_index[0,0])
-        # print(torch.max(self.data.edge_index[0,:]))
+        # print(self.datasets)
+        # print(self.datasets.edge_index)
+        # print(self.datasets.edge_index[:10,:])
+        # print(self.datasets.edge_index[0,0])
+        # print(torch.max(self.datasets.edge_index[0,:]))
         # print(f"num_nodes: {num_nodes}, num_hyperedges: {num_hyperedges}")
         # print(f"num_nodes + num_hyperedges - 1: {num_nodes + num_hyperedges - 1}")
-        # print(f"self.data.edge_index.max().item(): {self.data.edge_index.max().item()}")
-        # print(torch.min(self.data.edge_index[0,:]))
+        # print(f"self.datasets.edge_index.max().item(): {self.datasets.edge_index.max().item()}")
+        # print(torch.min(self.datasets.edge_index[0,:]))
         assert ((num_nodes + num_hyperedges - 1) == self.data.edge_index.max().item())
-        #save the self.data.edge_index to a txt file with edge_index[0], and edge_index[1] to two columns
-        # Assuming self.data.edge_index is a PyTorch tensor
-        torch.save(self.data.edge_index,"edge_index.pt")
+        # save the self.datasets.edge_index to a txt file with edge_index[0], and edge_index[1] to two columns
+        # Assuming self.datasets.edge_index is a PyTorch tensor
+        torch.save(self.data.edge_index, "edge_index.pt")
         print("edge_index saved")
         # Save to text file
 
@@ -160,7 +158,7 @@ class HypergraphDataset(InMemoryDataset):
         if self.feature_noise is not None:
             file_names = [f'data_noise_{self.feature_noise}.pt']
         else:
-            file_names = ['data.pt']
+            file_names = ['datasets.pt']
         return file_names
 
     @property
@@ -196,29 +194,29 @@ class HypergraphDataset(InMemoryDataset):
 
             # file not exist, so we create it and save it there.
             if dataset_name in self.cocitation_list:
-                raw_data = load_citation_dataset(path = self.path_to_download, dataset = dataset_name)
+                raw_data = load_citation_dataset(path=self.path_to_download, dataset=dataset_name)
 
             elif dataset_name in self.coauthor_list:
                 dataset_name = dataset_name.split('_')[-1]
-                raw_data = load_citation_dataset(path = self.path_to_download, dataset = dataset_name)
+                raw_data = load_citation_dataset(path=self.path_to_download, dataset=dataset_name)
 
             elif dataset_name in self.cornell_list:
                 if self.feature_noise is None:
                     raise ValueError(f'For cornell datasets, feature noise cannot be {self.feature_noise}')
                 feature_dim = extra.get('feature_dim', None)
-                raw_data = load_cornell_dataset(path = self.path_to_download, dataset = dataset_name,
-                    feature_dim = feature_dim, feature_noise = self.feature_noise)
+                raw_data = load_cornell_dataset(path=self.path_to_download, dataset=dataset_name,
+                                                feature_dim=feature_dim, feature_noise=self.feature_noise)
 
             elif dataset_name in self.yelp_list:
-                raw_data = load_yelp_dataset(path = self.path_to_download, dataset = dataset_name)
+                raw_data = load_yelp_dataset(path=self.path_to_download, dataset=dataset_name)
 
             elif dataset_name in self.LE_list:
-                raw_data = load_LE_dataset(path = self.path_to_download,  dataset = dataset_name)
+                raw_data = load_LE_dataset(path=self.path_to_download, dataset=dataset_name)
 
             elif dataset_name in self.HGB_list:
-                raw_data = load_HGB_dataset(path = self.path_to_download, dataset = dataset_name)
+                raw_data = load_HGB_dataset(path=self.path_to_download, dataset=dataset_name)
 
-            self.save_data_to_pickle(raw_data, save_dir = self.raw_dir, file_name = file_name)
+            self.save_data_to_pickle(raw_data, save_dir=self.raw_dir, file_name=file_name)
 
     def process(self):
         file_path = os.path.join(self.raw_dir, self.raw_file_names[0])
@@ -230,20 +228,22 @@ class HypergraphDataset(InMemoryDataset):
     def __repr__(self):
         return '{}(feature_noise={})'.format(self.name, self.feature_noise)
 
-class HypergraphDataset_Diffusion(HypergraphDataset):
 
+class HypergraphDataset_Diffusion(HypergraphDataset):
     existing_diffusion = ['clique', 'max', 'max_subgrad', 'card', 'card_subgrad']
 
-
-    def __init__(self, root, name,  path_to_download='./raw_data', transform = None, pre_transform = None):
-
+    def __init__(self, root, name, path_to_download='./raw_data', transform=None, pre_transform=None):
         self.diffusion_name = name
 
-        super(HypergraphDataset_Diffusion, self).__init__(root=root, name='senate-committees',  path_to_download=path_to_download,
-            feature_noise = 1.0, transform = None, pre_transform = None) # dumy feature noise
+        super(HypergraphDataset_Diffusion, self).__init__(root=root, name='senate-committees',
+                                                          path_to_download=path_to_download,
+                                                          feature_noise=1.0, transform=None,
+                                                          pre_transform=None)  # dumy feature noise
 
-        self.x = torch.tensor(np.load(os.path.join(self.raw_dir, 'x.npy')))[..., None].float() # [num_instances, num_nodes, num_feats]
-        self.y = torch.tensor(np.load(os.path.join(self.raw_dir, 'y.npy')))[..., None].float() # [num_instances, num_nodes, num_feats]
+        self.x = torch.tensor(np.load(os.path.join(self.raw_dir, 'x.npy')))[
+            ..., None].float()  # [num_instances, num_nodes, num_feats]
+        self.y = torch.tensor(np.load(os.path.join(self.raw_dir, 'y.npy')))[
+            ..., None].float()  # [num_instances, num_nodes, num_feats]
 
     @property
     def num_features(self):
@@ -267,5 +267,3 @@ class HypergraphDataset_Diffusion(HypergraphDataset):
 
     def __repr__(self):
         return '{}(feature_noise={})'.format(self.name, self.feature_noise)
-
-# %%

@@ -45,7 +45,7 @@ class HyperND(nn.Module):
             return self.cache
 
         X = data.x
-        # Y = nn.functional.one_hot(data.y)
+        # Y = nn.functional.one_hot(datasets.y)
         N = X.shape[-2]
         V, E = data.edge_index[0], data.edge_index[1]
         device = X.device

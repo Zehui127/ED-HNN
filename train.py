@@ -1,23 +1,18 @@
-import os, sys
-import math, time, random
-import pickle
-import argparse, configargparse
+import random
+import time
 
+import configargparse
 import numpy as np
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 import torch_geometric
 
-from tqdm import tqdm
-
+import utils
+from datasets import datasets
 from models import SetGNN, HCHA, HNHN, HyperGCN, HyperSAGE, \
     LEGCN, UniGCNII, HyperND, EquivSetGNN
 
-import datasets
-import utils
 
 @torch.no_grad()
 def evaluate(model, data, split_idx, evaluator, loss_fn=None, return_out=False):
@@ -54,7 +49,7 @@ def main(args):
         transform = None
     print(f"dataset name: {args.dname} ")
     data = datasets.HypergraphDataset(root=args.data_dir, name=args.dname, path_to_download=args.raw_data_dir,
-        feature_noise=args.feature_noise, transform=transform).data
+                                      feature_noise=args.feature_noise, transform=transform).data
     print(data)
     if args.method in ['AllSetTransformer', 'AllDeepSets']:
         data = SetGNN.norm_contruction(data, option=args.normtype)
