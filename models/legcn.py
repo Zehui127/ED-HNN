@@ -1,23 +1,22 @@
-import torch, math, numpy as np, scipy.sparse as sp
-import torch.nn as nn, torch.nn.functional as F, torch.nn.init as init
-
-import torch_geometric
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch_scatter
+import torch_sparse
 from torch_geometric.nn import GCNConv
- 
-import torch_scatter, torch_sparse
+
 
 class LEGCN(nn.Module):
-
     @staticmethod
     def line_expansion(data):
         V, E = data.edge_index
-        E = E + V.max() # [V | E]
+        E = E + V.max()  # [V | E]
         num_ne_pairs = data.edge_index.shape[1]
         V_plus_E = E.max() + 1
         L1 = torch.stack([torch.arange(V.shape[0], device=V.device), V], -1)
         L2 = torch.stack([torch.arange(E.shape[0], device=E.device), E], -1)
-        L = torch.cat([L1, L2], -1) # [2, |V| + |E|]
-        L_T = torch.stack([L[1], L[0]], 0) # [2, |V| + |E|]
+        L = torch.cat([L1, L2], -1)  # [2, |V| + |E|]
+        L_T = torch.stack([L[1], L[0]], 0)  # [2, |V| + |E|]
         ones = torch.ones(L.shape[1], device=L.device)
         adj, value = torch_sparse.spspmm(L, ones, L_T, ones, num_ne_pairs, V_plus_E, num_ne_pairs, coalesced=True)
         adj, value = torch_sparse.coalesce(adj, value, num_ne_pairs, num_ne_pairs, op="add")

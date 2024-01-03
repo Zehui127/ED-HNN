@@ -1,15 +1,8 @@
-
-import math
 import numpy as np
-
-import torch
 
 import torch.nn as nn
 import torch.nn.functional as F
 
-from torch import Tensor
-from torch.nn import Linear
-from torch.nn import Parameter
 
 class MLP(nn.Module):
     """ adapted from https://github.com/CUAI/CorrectAndSmooth/blob/master/gen_models.py """
@@ -96,23 +89,23 @@ class MLP(nn.Module):
         for i, lin in enumerate(self.lins[:-1]):
             x = lin(x)
             x = F.relu(x, inplace=True)
-            x = self.normalizations[i+1](x)
+            x = self.normalizations[i + 1](x)
             x = F.dropout(x, p=self.dropout, training=self.training)
         x = self.lins[-1](x)
         return x
 
     def flops(self, x):
         num_samples = np.prod(x.shape[:-1])
-        flops = num_samples * self.in_channels # first normalization
-        flops += num_samples * self.in_channels * self.hidden_channels # first linear layer
-        flops += num_samples * self.hidden_channels # first relu layer
+        flops = num_samples * self.in_channels  # first normalization
+        flops += num_samples * self.in_channels * self.hidden_channels  # first linear layer
+        flops += num_samples * self.hidden_channels  # first relu layer
 
         # flops for each layer
         per_layer = num_samples * self.hidden_channels * self.hidden_channels
-        per_layer += num_samples * self.hidden_channels # relu + normalization
+        per_layer += num_samples * self.hidden_channels  # relu + normalization
         flops += per_layer * (len(self.lins) - 2)
 
-        flops += num_samples * self.out_channels * self.hidden_channels # last linear layer
+        flops += num_samples * self.out_channels * self.hidden_channels  # last linear layer
 
         return flops
 

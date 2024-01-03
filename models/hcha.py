@@ -1,18 +1,15 @@
-import torch
-from torch import Tensor
-from torch.nn import Linear
-from torch.nn import Parameter
-
-import torch.nn as nn
-import torch.nn.functional as F
-
-from torch_geometric.nn.conv import MessagePassing
-from torch_geometric.utils import softmax
-from torch_scatter import scatter_add, scatter
-from torch_geometric.typing import Adj, Size, OptTensor
+import math
 from typing import Optional
 
-import math 
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch import Tensor
+from torch.nn import Parameter
+from torch_geometric.nn.conv import MessagePassing
+from torch_geometric.utils import softmax
+from torch_scatter import scatter_add
+
 
 # Method for initialization
 def glorot(tensor):
@@ -24,6 +21,7 @@ def glorot(tensor):
 def zeros(tensor):
     if tensor is not None:
         tensor.data.fill_(0)
+
 
 class HypergraphConv(MessagePassing):
     r"""The hypergraph convolutional operator from the `"Hypergraph Convolution
@@ -163,7 +161,7 @@ class HypergraphConv(MessagePassing):
         else:  # this correspond to HGNN
             D = scatter_add(hyperedge_weight[hyperedge_index[1]],
                             hyperedge_index[0], dim=0, dim_size=num_nodes)
-            D = 1.0 / D**(0.5)
+            D = 1.0 / D ** (0.5)
             D[D == float("inf")] = 0
 
             B = scatter_add(x.new_ones(hyperedge_index.size(1)),
@@ -171,7 +169,7 @@ class HypergraphConv(MessagePassing):
             B = 1.0 / B
             B[B == float("inf")] = 0
 
-            x = D.unsqueeze(-1)*x
+            x = D.unsqueeze(-1) * x
             self.flow = 'source_to_target'
             out = self.propagate(hyperedge_index, x=x, norm=B, alpha=alpha,
                                  size=(num_nodes, num_edges))
@@ -217,11 +215,11 @@ class HCHA(nn.Module):
         self.dropout = args.dropout  # Note that default is 0.6
         self.symdegnorm = args.HCHA_symdegnorm
 
-#         Note that add dropout to attention is default in the original paper
+        # Note that add dropout to attention is default in the original paper
         self.convs = nn.ModuleList()
         self.convs.append(HypergraphConv(num_features,
                                          args.MLP_hidden, self.symdegnorm))
-        for _ in range(self.num_layers-2):
+        for _ in range(self.num_layers - 2):
             self.convs.append(HypergraphConv(
                 args.MLP_hidden, args.MLP_hidden, self.symdegnorm))
         # Output heads is set to 1 as default
@@ -241,7 +239,7 @@ class HCHA(nn.Module):
             x = F.elu(conv(x, edge_index))
             x = F.dropout(x, p=self.dropout, training=self.training)
 
-#         x = F.dropout(x, p=self.dropout, training=self.training)
+        # x = F.dropout(x, p=self.dropout, training=self.training)
         x = self.convs[-1](x, edge_index)
 
         return x

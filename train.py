@@ -38,9 +38,10 @@ def evaluate(model, data, split_idx, evaluator, loss_fn=None, return_out=False):
 
     return ret_list
 
+
 def main(args):
     if args.cuda != -1:
-        device = torch.device('cuda:'+str(args.cuda) if torch.cuda.is_available() else 'cpu')
+        device = torch.device('cuda:' + str(args.cuda) if torch.cuda.is_available() else 'cpu')
     else:
         device = torch.device('cpu')
     if args.method not in ['HyperGCN', 'HyperSAGE']:
@@ -144,6 +145,7 @@ def main(args):
 
     logger.print_statistics()
 
+
 if __name__ == '__main__':
     # parser = argparse.ArgumentParser()
     parser = configargparse.ArgumentParser()
@@ -157,7 +159,7 @@ if __name__ == '__main__':
     parser.add_argument('--train_prop', type=float, default=0.5)
     parser.add_argument('--valid_prop', type=float, default=0.25)
     parser.add_argument('--feature_noise', default='1', type=str, help='std for synthetic feature noise')
-    parser.add_argument('--normtype', default='all_one', choices=['all_one','deg_half_sym'])
+    parser.add_argument('--normtype', default='all_one', choices=['all_one', 'deg_half_sym'])
     parser.add_argument('--add_self_loop', action='store_false')
     parser.add_argument('--exclude_self', action='store_true', help='whether the he contain self node or not')
 
@@ -182,13 +184,14 @@ if __name__ == '__main__':
     parser.add_argument('--Classifier_hidden', default=64,
                         type=int)  # Decoder hidden units
     parser.add_argument('--aggregate', default='mean', choices=['sum', 'mean'])
-    parser.add_argument('--normalization', default='ln', choices=['bn','ln','None'])
-    parser.add_argument('--activation', default='relu', choices=['Id','relu', 'prelu'])
+    parser.add_argument('--normalization', default='ln', choices=['bn', 'ln', 'None'])
+    parser.add_argument('--activation', default='relu', choices=['Id', 'relu', 'prelu'])
 
     # Args for EDGNN
     parser.add_argument('--MLP2_num_layers', default=-1, type=int, help='layer number of mlp2')
     parser.add_argument('--MLP3_num_layers', default=-1, type=int, help='layer number of mlp3')
-    parser.add_argument('--edconv_type', default='EquivSet', type=str, choices=['EquivSet', 'JumpLink', 'MeanDeg', 'Attn', 'TwoSets'])
+    parser.add_argument('--edconv_type', default='EquivSet', type=str,
+                        choices=['EquivSet', 'JumpLink', 'MeanDeg', 'Attn', 'TwoSets'])
     parser.add_argument('--restart_alpha', default=0.5, type=float)
 
     # Args for AllSet
@@ -213,12 +216,12 @@ if __name__ == '__main__':
     parser.add_argument('--HCHA_symdegnorm', action='store_true')
     # Args for UniGNN
     parser.add_argument('--UniGNN_use_norm', action="store_true", help='use norm in the final layer')
-    parser.add_argument('--UniGNN_degV', default = 0)
-    parser.add_argument('--UniGNN_degE', default = 0)
+    parser.add_argument('--UniGNN_degV', default=0)
+    parser.add_argument('--UniGNN_degE', default=0)
     # Args for HyperND
-    parser.add_argument('--HyperND_ord', default = 1., type=float)
-    parser.add_argument('--HyperND_tol', default = 1e-4, type=float)
-    parser.add_argument('--HyperND_steps', default = 100, type=int)
+    parser.add_argument('--HyperND_ord', default=1., type=float)
+    parser.add_argument('--HyperND_tol', default=1e-4, type=float)
+    parser.add_argument('--HyperND_steps', default=100, type=int)
 
     parser.set_defaults(add_self_loop=True)
     parser.set_defaults(exclude_self=False)
@@ -229,9 +232,9 @@ if __name__ == '__main__':
     parser.set_defaults(HyperGCN_fast=True)
     parser.set_defaults(HCHA_symdegnorm=False)
 
-    #     Use the line below for .py file
+    # # Use the line below for .py file
     args = parser.parse_args()
-    #     Use the line below for notebook
+    # # Use the line below for notebook
     # args = parser.parse_args([])
     # args, _ = parser.parse_known_args()
 

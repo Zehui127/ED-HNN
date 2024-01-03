@@ -1,9 +1,7 @@
-import os, sys
 import matplotlib.pyplot as plt
-
 import numpy as np
-
 import torch
+
 
 class NodeClsEvaluator:
 
@@ -15,11 +13,12 @@ class NodeClsEvaluator:
         y_true = y_true.detach().cpu().numpy()
         y_pred = y_pred.argmax(dim=-1, keepdim=False).detach().cpu().numpy()
 
-        is_labeled = (~np.isnan(y_true)) & (~np.isinf(y_true)) # no nan and inf
+        is_labeled = (~np.isnan(y_true)) & (~np.isinf(y_true))  # no nan and inf
         correct = (y_true[is_labeled] == y_pred[is_labeled])
-        acc_list.append(float(np.sum(correct))/len(correct))
+        acc_list.append(float(np.sum(correct)) / len(correct))
 
         return {'acc': sum(correct) / sum(is_labeled)}
+
 
 class NodeRegEvaluator:
 
@@ -36,7 +35,10 @@ class NodeRegEvaluator:
             'mape': torch.mean(torch.abs(d) / torch.abs(y_true)).item(),
         }
 
+
 """ Adapted from https://github.com/snap-stanford/ogb/ """
+
+
 class Logger:
 
     def __init__(self, runs, log_path=None):
@@ -60,7 +62,7 @@ class Logger:
             valid = result[argmax, 1].item()
             test = result[argmax, 2].item()
             return {'max_train': max_train, 'max_test': max_test,
-                'train': train, 'valid': valid, 'test': test}
+                    'train': train, 'valid': valid, 'test': test}
         else:
             keys = ['max_train', 'max_test', 'train', 'valid', 'test']
 
@@ -71,8 +73,8 @@ class Logger:
             ret_dict = {}
             best_result = torch.tensor(best_results)
             for i, k in enumerate(keys):
-                ret_dict[k+'_mean'] = best_result[:, i].mean().item()
-                ret_dict[k+'_std'] = best_result[:, i].std().item()
+                ret_dict[k + '_mean'] = best_result[:, i].mean().item()
+                ret_dict[k + '_std'] = best_result[:, i].std().item()
 
             return ret_dict
 
@@ -108,8 +110,11 @@ class Logger:
             plt.plot(x, result[:, 0], x, result[:, 1], x, result[:, 2])
             plt.legend(['Train', 'Valid', 'Test'])
 
+
 """ Adapted from https://github.com/CUAI/Non-Homophily-Benchmarks"""
 """ randomly splits label into train/valid/test splits """
+
+
 def rand_train_test_idx(label, train_prop, valid_prop, balance=False):
     if not balance:
         n = label.shape[0]
@@ -130,13 +135,13 @@ def rand_train_test_idx(label, train_prop, valid_prop, balance=False):
 
     else:
         indices = []
-        for i in range(label.max()+1):
+        for i in range(label.max() + 1):
             index = torch.where((label == i))[0].view(-1)
             index = index[torch.randperm(index.size(0))]
             indices.append(index)
 
-        percls_trn = int(train_prop/(label.max()+1)*len(label))
-        val_lb = int(valid_prop*len(label))
+        percls_trn = int(train_prop / (label.max() + 1) * len(label))
+        val_lb = int(valid_prop * len(label))
         train_idx = torch.cat([ind[:percls_trn] for ind in indices], dim=0)
         rest_index = torch.cat([ind[percls_trn:] for ind in indices], dim=0)
         valid_idx = rest_index[:val_lb]
@@ -149,6 +154,7 @@ def rand_train_test_idx(label, train_prop, valid_prop, balance=False):
         }
 
     return split_idx
+
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)

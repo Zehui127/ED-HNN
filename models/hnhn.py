@@ -1,20 +1,13 @@
+import math
+
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 import torch_scatter
 from torch import Tensor
 from torch.nn import Linear
-from torch.nn import Parameter
-
-import torch.nn as nn
-import torch.nn.functional as F
-
 from torch_geometric.nn.conv import MessagePassing
-from torch_geometric.utils import softmax
-from torch_scatter import scatter_add, scatter
-from torch_geometric.typing import Adj, Size, OptTensor
-from typing import Optional
 
-import math
-import numpy as np
 
 # Method for initialization
 def glorot(tensor):
@@ -26,6 +19,7 @@ def glorot(tensor):
 def zeros(tensor):
     if tensor is not None:
         tensor.data.fill_(0)
+
 
 class HNHNConv(MessagePassing):
     def __init__(self, in_channels, hidden_channels, out_channels, heads=1, nonlinear_inbetween=True,
@@ -81,21 +75,21 @@ class HNHNConv(MessagePassing):
         self.flow = 'source_to_target'
         out = self.propagate(hyperedge_index, x=x, norm=data.D_e_beta_inv,
                              size=(num_nodes, num_edges))
-        
+
         if self.nonlinear_inbetween:
             out = F.relu(out)
-        
+
         # sanity check
         out = torch.squeeze(out, dim=1)
-        
+
         out = self.weight_e2v(out)
-        
+
         out = data.D_e_alpha.unsqueeze(-1) * out
 
         self.flow = 'target_to_source'
         out = self.propagate(hyperedge_index, x=out, norm=data.D_v_alpha_inv,
                              size=(num_edges, num_nodes))
-        
+
         return out
 
     def message(self, x_j, norm_i):
@@ -106,7 +100,8 @@ class HNHNConv(MessagePassing):
 
     def __repr__(self):
         return "{}({}, {}, {})".format(self.__class__.__name__, self.in_channels,
-                                   self.hidden_channels, self.out_channels)
+                                       self.hidden_channels, self.out_channels)
+
 
 class HNHN(nn.Module):
 
@@ -117,7 +112,7 @@ class HNHN(nn.Module):
         :param variable_weight: whether the weight of hyperedge is variable
         :return: G
         """
-    
+
         # Construct incidence matrix H of size (num_nodes, num_hyperedges) from edge_index = [V;E]
         edge_index = data.edge_index
         ones = torch.ones(data.edge_index.shape[1], device=edge_index.device)
@@ -156,7 +151,7 @@ class HNHN(nn.Module):
 
         self.num_layers = args.All_num_layers
         self.dropout = args.dropout
-        
+
         self.convs = nn.ModuleList()
         # two cases
         if self.num_layers == 1:
@@ -178,7 +173,7 @@ class HNHN(nn.Module):
     def forward(self, data):
 
         x = data.x
-        
+
         if self.num_layers == 1:
             conv = self.convs[0]
             x = conv(x, data)

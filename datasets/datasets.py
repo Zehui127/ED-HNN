@@ -1,20 +1,13 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import torch
-import pickle
 import os
-import ipdb
+import pickle
+
 import numpy as np
-import pandas as pd
-
+import torch
 import torch_geometric
-from torch_geometric.data import Data
 from torch_geometric.data import InMemoryDataset
-
-from torch_sparse import coalesce
-# from randomperm_code import random_planetoid_splits
-from sklearn.feature_extraction.text import CountVectorizer
 
 from data_utils import load_citation_dataset, load_LE_dataset, \
     load_yelp_dataset, load_cornell_dataset, load_HGB_dataset
