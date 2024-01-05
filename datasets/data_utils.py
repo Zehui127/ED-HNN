@@ -27,7 +27,7 @@ def load_HGB_dataset(path, dataset):
     # increase the hyperedge_index by the number of nodes.
     edge_index = ori_dataset.hyperedge_index
     print(edge_index)
-    # TODO:for node not in hyperedge, add a self-loop to it.
+    # TODO: for node not in hyperedge, add a self-loop to it.
     all_nodes = set(range(data.num_nodes))
     hyperedge_nodes = set(edge_index[0].numpy())
     missing_nodes = all_nodes - hyperedge_nodes
